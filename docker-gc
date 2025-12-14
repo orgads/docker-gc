@@ -126,11 +126,10 @@ function compute_exclude_ids() {
 
   # What this does is make grep patterns to match image ids mentioned by
   # either repo:tag or image id for later greppage
-  $DOCKER images \
+  $DOCKER images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
     | tail -n+2 \
-    | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
     | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
-    | cut -d' ' -f3 \
+    | cut -d' ' -f2 \
     | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
 }
 
@@ -251,10 +250,7 @@ sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 echo -n "" > images.all
-$DOCKER images | while read line
-do
-  awk '{print $1};'
-done | sort | uniq | while read line
+$DOCKER images --format='{{.Repository}}' | sort | uniq | while read line
 do
   $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
     | sort -k 2 -r \
